@@ -28,7 +28,7 @@ Point3D PointsToSurface::center_of_gravity(v_Point3D pts){
         z += pts[i].z;
     }
     x = x/pts.size();
-    y= y/pts.size();
+    y = y/pts.size();
     z = z/pts.size();
 
     return Point3D(x,y,z);
@@ -37,25 +37,56 @@ Point3D PointsToSurface::center_of_gravity(v_Point3D pts){
 
 void PointsToSurface::computeNonOrientedNormals() {
 
-    int k = 4;
+    int k = 3;
+    double A11,A12,A13,A22,A23,A33;
     for(int i=0;i<_points.size();i++){
+
         Point3D p = _points[i];
+
 
         //compute the k-neighbors : pts
         v_Point3D pts = kneighborhoodPoints(p,_points,k);
+
         //compute center of gravity B of pts
         Point3D b = center_of_gravity(pts);
+
         //compute the matrix A = pts - B
-        //MatrixXd A ;
-        //compute the matrix A'*A
+        Point3D a1 = pts[0]-b;
+        Point3D a2 = pts[1]-b;
+        Point3D a3 = pts[2]-b;
+
+        //compute A' * A = [A11 A12 A13; A12 A22 A23; A13 A23 A33]
+        //A12 == A21 , A23 == A32, A13 == A31 because scalar product is symetric
+
+        A11 = produit_scalaire(a1,a1);
+        A12 = produit_scalaire(a1,a2);
+        A13 = produit_scalaire(a1,a3);
+
+        A22 = produit_scalaire(a2,a2);
+        A23 = produit_scalaire(a2,a3);
+
+        A33 = produit_scalaire(a3,a3);
+
         //compute the eigen vectors of A'*A
+        Point3D u;
+        Point3D v;
+        Point3D n;
+
+
+        //Problem here ?
+        calcul_repere_vecteurs_propres(A11,A12,A13,A22,A23,A33,u,v,n);
+
+
         //return the non oriented normals _noNormals
+
+        Point3D norm = produit_vectoriel(v,u);
+        _noNormals.push_back( norm );
     }
-  //_noNormals = ;
-  // a remplir : _noNormals
 }
 
 void PointsToSurface::computeMinimalSpanningTree() {
+
+
   // a remplir : _acm
 }
 
