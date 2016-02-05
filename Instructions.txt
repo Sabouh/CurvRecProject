@@ -1,0 +1,62 @@
+FILES PROVIDED: 
+	Classes provided : 
+		geom : class Point3D 
+			- scalar/cross product
+			- list of points (v_Point3D)
+			- eigen vectors of a 3x3 symetrical matrix
+			
+		data_struct_algo : class Graphe, class Grille3D
+			- Graph creation / computing of a minimal spanning tree
+			- initialization of a 3D Grid (grille3D) for the implicit function
+		
+		iso_value : class SurfaceIsoValeurGrille
+			- compute the marching tetrahedron from a grid + an implicit function
+			
+		viewer/ eventWidget : window and menu
+		
+		pointsToSurface :
+			- the ONLY class to alter !!!!!!
+			- list of points  given = v_Point3D _points
+			- fill the predefined structures/functions
+				* v_Point3D _noNormals (computeNonOrientedNormals)
+				* v_Point3D _oNormals (computeOrientedNormals)
+				* Graphe _acm (computeMinimalSpanningTree)
+				* implicit function (computeImplicitFunc)
+				
+			- and obtain the final surface :
+				* v_Triangle3D _surfacep (computeMesh)
+				* v_Triangle3D _surfacen (computeNormalsFromImplicitFunc)
+
+
+6 STEPS of the project : 
+ - compute non oriented (angled) normals
+ - compute the  minimum spanning tree 
+ - reoriente normals
+ - determine a function f(x,y,z) on every point
+ - compute the isovalue surface f(x,y,z) = 0
+ - compute the (final) normals of the surface
+ 
+ Steps detailed : 
+ I  - compute non oriented (angled) normals :
+	for every vertice p :
+		find the k-neighbors pts
+		compute the barycentre ( center of mass/gravity)
+		compute the matrix A = pts - B
+		compute the matrix At * A
+		compute the eigen vectors of : 
+			AtA = [ A11 A12 A13; A12 A22 A23; A13 A23 A33]
+		return the non oriented normals _noNormals
+		
+ II  - compute the  minimum spanning tree :
+	in 2 steps : 
+		1- compute the graph of proximity G of the points _points
+			- one edge = pair of points p_i, p_j with d(p_i,p_j) <r ,
+			r a radius
+			- Careful when you chose the radius , the graph has to have
+			an ONLY connected component ( https://en.wikipedia.org/wiki/Connected_component_%28graph_theory%29)
+			
+		2- compute the minimum spanning tree from G : _acm 
+			- use "arbre_couvrent_minimal" (in the class data_struct_algo)
+			
+ III - reoriente normals
+ 
