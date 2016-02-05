@@ -1,0 +1,42 @@
+It's easy : 
+
+First you need to clone the project : 
+	you have to go on the link https://github.com/Sabouh/CurvRecProject
+	then on your terminal in the spot you want your repository to be created
+	(so you go "cd pathOfTheRightRepository ") 
+	then you type 
+	git clone theHTTPSAddressOnTheLink
+	and then you have your repository with all the files needed
+	
+	you would have to maybe recompile the library
+	
+Some useful command : 
+
+	git pull : it refresh your copy of the project so you're up to date
+	
+	git add name_of_file_or_repository : it adds a file/repository to the git project
+	
+	git commit : it save your copy of the git project
+	
+	git push : it sends everything you saved before by using commit on the git server
+				
+	git checkout name_of_file_or_repository : ignore a file/repository
+	
+	git status : display the list of files/repository you modified
+	
+	
+	Basically, a main way to do things is when you begin to work on the project :
+	
+	git pull, to update it
+	
+	then you do your changes, write some code or what you want to do
+	if you created new files or repositories you need to add them w/ git add
+	you can type git status to see if you didn't forget to add anything
+	then when you're finished working for the session you do a git commit
+	and a git push.
+	
+	Sometimes they can be conflicts but I don't think we would have some so it's okay.
+	
+	
+	
+	
