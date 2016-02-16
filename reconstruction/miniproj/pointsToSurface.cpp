@@ -80,14 +80,54 @@ void PointsToSurface::computeNonOrientedNormals() {
         //return the non oriented normals _noNormals
 
         Point3D norm = produit_vectoriel(v,u);
-        _noNormals.push_back( norm );
+        _noNormals.push_back( n);
     }
 }
 
+/*Si l'arc (i,j) est present dans le graphe g alors retourne vrai
+* sinon retourne faux*/
+bool presentDansArbre(Graphe g,int i){
+
+    int k=0;
+    while(k < g.nb_arcs() ){
+        if(g.arc(k).n1 == i || g.arc(k).n2 == i){
+
+            return true;
+        }
+        k++;
+    }
+    return false;
+}
+
+bool estLie(Graphe g,int i){
+    return false;
+}
+
 void PointsToSurface::computeMinimalSpanningTree() {
-
-
-  // a remplir : _acm
+    //Pour chaque point
+    //d(Pi,Pj) <r et i!=j
+    float r = 0.5;
+    Point3D pi;
+    Point3D pj;
+    Graphe arbre = Graphe(_points.size());
+    for(int i=0; i< _points.size();i++){
+        pi = _points[i];
+        //Si on a déjà regardé pi on fait rien
+        //Sinon
+        //Pour tous les points à une distance r de pi pj
+        //on ajoute l'edge pi pj
+        for(int j=0;j< _points.size();j++){
+            pj = _points[j];
+            //Si i = j ou d(pi,pj) >= r ou pi,pj deja present dans l'arbre
+            if((i == j) || (distance_(pi,pj) >= r) || presentDansArbre(arbre,j)){
+                //On passe
+            }else{
+                //On ajoute l'edge (pi,pj)
+                arbre.ajouter_arc(i,j);
+            }
+        }
+    }
+    _acm = arbre.arbre_couvrant_minimal();
 }
 
 void PointsToSurface::computeOrientedNormals() {
