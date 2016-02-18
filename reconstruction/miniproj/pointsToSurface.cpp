@@ -106,7 +106,7 @@ bool estLie(Graphe g,int i){
 void PointsToSurface::computeMinimalSpanningTree() {
     //Pour chaque point
     //d(Pi,Pj) <r et i!=j
-    float r = 0.5;
+   /* float r = 0.5;
     Point3D pi;
     Point3D pj;
     Graphe arbre = Graphe(_points.size());
@@ -127,7 +127,9 @@ void PointsToSurface::computeMinimalSpanningTree() {
             }
         }
     }
-    _acm = arbre.arbre_couvrant_minimal();
+
+    _acm = arbre;*/
+    //_acm = arbre.arbre_couvrant_minimal();
 }
 
 void PointsToSurface::computeOrientedNormals() {
