@@ -118,9 +118,7 @@ double PointsToSurface::compute_radius(){
 }
 
 void PointsToSurface::computeMinimalSpanningTree() {
-    //Pour chaque point
-    //d(Pi,Pj) <r et i!=j
-   /* float r = 0.5;
+    
     Point3D pi;
     Point3D pj;
     Graphe tree = Graphe(_points.size());
@@ -140,8 +138,6 @@ void PointsToSurface::computeMinimalSpanningTree() {
         }
     }
 
-    _acm = arbre;*/
-    //_acm = arbre.arbre_couvrant_minimal();
     //Computing of minimal spanning tree
    // _acm = tree;
     _acm = tree.arbre_couvrant_minimal();
@@ -187,8 +183,8 @@ void PointsToSurface::computeOrientedNormals() {
 }
 
 double PointsToSurface::computeImplicitFunc(double x,double y,double z) {
-  // a faire : déterminer la fonction implicite (MLS)
-  double sigma = 1.0;
+  // a faire : determiner la fonction implicite (MLS)
+  double sigma = 0.1;
 
   double sum = 0.0;
   double sum_weight = 0.0;
@@ -197,8 +193,8 @@ double PointsToSurface::computeImplicitFunc(double x,double y,double z) {
 
   for(int i=0;i<_points.size();i++){
       weight = exp(-pow( norme(X-_points[i])/sigma ,2 ));
-      sum = sum + ( produit_scalaire( _oNormals[i] , (X-_points[i]) ) * weight );
-      sum_weight = sum_weight + weight;
+      sum +=  ( produit_scalaire( _oNormals[i] , (X-_points[i]) ) * weight );
+      sum_weight += weight;
   }
 
   return (sum/sum_weight);
@@ -255,24 +251,24 @@ void PointsToSurface::computeMesh() {
 
     Point3D min = boundingMin();
     Point3D max = boundingMax();
-    unsigned int n_x = 10;
-    unsigned int n_y = 10;
-    unsigned int n_z = 10;
-//    _boundingBox[0] = Point3D(min.x-1,min.y-1,min.z-1);
-//    _boundingBox[1] = Point3D(max.x+1,max.y+1,max.z+1);
+    unsigned int n_x = 9;
+    unsigned int n_y = 9;
+    unsigned int n_z = 9;
     Grille3D grille = Grille3D(min.x,min.y,min.z,max.x,max.y,max.z,n_x,n_y,n_z);
+
+    int DIM_X = n_x+1;
+    int DIM_Y = n_y+1;
+    int DIM_Z = n_z+1;
 
 
   //Create an array v with the values of the implicit function
     //same size as the grid
-    double v[n_x*n_y*n_z];
+    double v[DIM_X*DIM_Y*DIM_Z];
     //for each position of the 3DGrid compute the value of the implicit function
-    int DIM_X = n_x;
-    int DIM_Y = n_y;
 
-    for(int i=0;i<n_x;i++){
-        for(int j=0;j<n_y;j++){
-            for(int k=0;k<n_z;k++){
+    for(int i=0;i<n_x+1;i++){
+        for(int j=0;j<n_y+1;j++){
+            for(int k=0;k<n_z+1;k++){
                 v[i+DIM_X*(j+DIM_Y*k)] = computeImplicitFunc(grille.x(i),grille.y(j),grille.z(k));
             }
         }
@@ -281,7 +277,6 @@ void PointsToSurface::computeMesh() {
 
   //Compute the isovalue surface
     SurfaceIsovaleurGrille* isovalue_surface = new SurfaceIsovaleurGrille();
-    cout <<"hello"<<endl;
     isovalue_surface->surface_isovaleur(_surfacep,grille,v,0.0);
 }
 
@@ -356,7 +351,7 @@ bool PointsToSurface::readInputFile(const QString &filename) {
   if ((f = fopen(filename.toStdString().c_str(),"r"))==(FILE *)NULL)
     return false;
 	
-  // lecture du nombre de points et du rayon d'échantillonnage
+  // lecture du nombre de points et du rayon d'ï¿½chantillonnage
   if(fscanf(f, "%i %lf\n", &nS, &r)==EOF) return false;
 	
   // lecture des points
