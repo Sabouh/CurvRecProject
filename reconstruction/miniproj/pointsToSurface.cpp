@@ -1,6 +1,4 @@
 #include "pointsToSurface.h"
-#include <iostream>
-
 using namespace std;
 
 PointsToSurface::PointsToSurface(const QString &filename) 
@@ -17,7 +15,7 @@ PointsToSurface::~PointsToSurface() {
   _points.clear();
 }
 
-
+//Return the center of gravity of the points contained in the vector pts
 Point3D PointsToSurface::center_of_gravity(v_Point3D pts){
     double x = 0.0;
     double y = 0.0;
@@ -34,10 +32,19 @@ Point3D PointsToSurface::center_of_gravity(v_Point3D pts){
     return Point3D(x,y,z);
 }
 
+//Return the scalar product of the vectors u and v , both having the same size "size"
+double scalar_product(vector<double> u, vector<double> v, int size){
+
+    double res= 0.0;
+    for(int i=0;i<size;i++){
+        res = res + u[i]*v[i];
+    }
+    return res;
+}
 
 void PointsToSurface::computeNonOrientedNormals() {
 
-    int k = 3;
+    nb_neighbors = 6;
     double A11,A12,A13,A22,A23,A33;
     for(int i=0;i<_points.size();i++){
 
@@ -45,107 +52,234 @@ void PointsToSurface::computeNonOrientedNormals() {
 
 
         //compute the k-neighbors : pts
-        v_Point3D pts = kneighborhoodPoints(p,_points,k);
+        v_Point3D pts = kneighborhoodPoints(p,_points,nb_neighbors);
 
         //compute center of gravity B of pts
         Point3D b = center_of_gravity(pts);
 
         //compute the matrix A = pts - B
-        Point3D a1 = pts[0]-b;
-        Point3D a2 = pts[1]-b;
-        Point3D a3 = pts[2]-b;
+
+        v_Point3D A(nb_neighbors);
+        for(int i=0;i<pts.size();i++){
+            A[i] = pts[i]-b;
+        }
+        //A[i] is the i-th column of A
+
+        vector<double> a1(nb_neighbors) ;
+        vector<double> a2(nb_neighbors) ;
+        vector<double> a3(nb_neighbors) ;
+        for(int i=0;i<pts.size();i++){
+            a1[i] = A[i].x;
+            a2[i] = A[i].y;
+            a3[i] = A[i].z;
+        }
+        //a1 is the first column of A , or the first row of A'
+        //a2    second
+        //a3    third
 
         //compute A' * A = [A11 A12 A13; A12 A22 A23; A13 A23 A33]
         //A12 == A21 , A23 == A32, A13 == A31 because scalar product is symetric
 
-        A11 = produit_scalaire(a1,a1);
-        A12 = produit_scalaire(a1,a2);
-        A13 = produit_scalaire(a1,a3);
+        A11 = scalar_product(a1,a1,nb_neighbors);
+        A12 = scalar_product(a1,a2,nb_neighbors);
+        A13 = scalar_product(a1,a3,nb_neighbors);
 
-        A22 = produit_scalaire(a2,a2);
-        A23 = produit_scalaire(a2,a3);
+        A22 = scalar_product(a2,a2,nb_neighbors);
+        A23 = scalar_product(a2,a3,nb_neighbors);
 
-        A33 = produit_scalaire(a3,a3);
+        A33 = scalar_product(a3,a3,nb_neighbors);
 
         //compute the eigen vectors of A'*A
         Point3D u;
         Point3D v;
         Point3D n;
 
-
-        //Problem here ?
         calcul_repere_vecteurs_propres(A11,A12,A13,A22,A23,A33,u,v,n);
 
 
         //return the non oriented normals _noNormals
-
-        Point3D norm = produit_vectoriel(v,u);
-        _noNormals.push_back( n);
+        _noNormals.push_back(n);
     }
 }
 
-/*Si l'arc (i,j) est present dans le graphe g alors retourne vrai
-* sinon retourne faux*/
-bool presentDansArbre(Graphe g,int i){
+double PointsToSurface::compute_radius(){
 
-    int k=0;
-    while(k < g.nb_arcs() ){
-        if(g.arc(k).n1 == i || g.arc(k).n2 == i){
-
-            return true;
+    double max = -1;
+    for(int i=0;i<_points.size();i++){
+        v_Point3D neighbors= kneighborhoodPoints(_points[i],_points,2);
+        Point3D neighbor = neighbors[1];
+        double dist = distance_(neighbor,_points[i]);
+        if(dist > max){
+            max = dist;
         }
-        k++;
     }
-    return false;
-}
-
-bool estLie(Graphe g,int i){
-    return false;
+    //We round it up as a double (example if r = 0.17 we have r = 0.2)
+    return (ceil(max*10))/10;
 }
 
 void PointsToSurface::computeMinimalSpanningTree() {
-    //Pour chaque point
-    //d(Pi,Pj) <r et i!=j
-    float r = 0.5;
+
+    //Definition of a graph , its size is the number of points we have
     Point3D pi;
     Point3D pj;
-    Graphe arbre = Graphe(_points.size());
-    for(int i=0; i< _points.size();i++){
+    Graphe tree = Graphe(_points.size());
+
+    //Choice of the radius
+    double r = compute_radius();
+
+    //Computing of proximity graph
+    for(int i=0; i < _points.size();i++){
         pi = _points[i];
-        //Si on a déjà regardé pi on fait rien
-        //Sinon
-        //Pour tous les points à une distance r de pi pj
-        //on ajoute l'edge pi pj
-        for(int j=0;j< _points.size();j++){
+        for(int j=i+1; j< _points.size();j++){
             pj = _points[j];
-            //Si i = j ou d(pi,pj) >= r ou pi,pj deja present dans l'arbre
-            if((i == j) || (distance_(pi,pj) >= r) || presentDansArbre(arbre,j)){
-                //On passe
-            }else{
-                //On ajoute l'edge (pi,pj)
-                arbre.ajouter_arc(i,j);
+            if( (i!=j) && distance_(pi,pj) < r){
+                double weight =  1 - abs( produit_scalaire(_noNormals[i],_noNormals[j]) ) ;
+                tree.ajouter_arc(i,j,weight);
             }
         }
     }
-    _acm = arbre.arbre_couvrant_minimal();
+
+    //Computing of minimal spanning tree
+   // _acm = tree;
+    _acm = tree.arbre_couvrant_minimal();
+}
+
+void PointsToSurface::normalsRedirection(Graphe g,Noeud node,int s,QVector<bool> seen_nodes){
+
+    l_int arcs_list = node.la;
+    //for all the arcs going from/to node
+    for (l_int::iterator k=arcs_list.begin();
+     k!=arcs_list.end(); k++)
+  {
+    Arc a = g.arc(*k);
+    unsigned int j = (a.n1 == s) ? a.n2 : a.n1;
+    //Look at scalar product son/father
+    //if <0 redirect the normals
+    if(!seen_nodes.at(j)){
+
+        seen_nodes[j] = true;
+
+        Point3D normal_father = _oNormals[s];
+        Point3D normal_son = _oNormals[j];
+
+        if(produit_scalaire(normal_father,normal_son) < 0){
+            _oNormals[j] = -normal_son;
+        }else{
+            _oNormals[j] = normal_son;
+        }
+
+        normalsRedirection(g,g.noeud(j),j,seen_nodes);
+    }
+  }
+
+
 }
 
 void PointsToSurface::computeOrientedNormals() {
   // a remplir : _oNormals
+    QVector<bool> seen_nodes(_points.size(),false);
+    seen_nodes[0] = true;
+    _oNormals = _noNormals;
+    normalsRedirection(_acm,_acm.noeud(0),0,seen_nodes);
 }
 
 double PointsToSurface::computeImplicitFunc(double x,double y,double z) {
   // a faire : déterminer la fonction implicite (MLS)
+  double sigma = 1.0;
 
-  return x+y+z;
+  double sum = 0.0;
+  double sum_weight = 0.0;
+  double weight = 0.0;
+  Point3D X = Point3D(x,y,z);
+
+  for(int i=0;i<_points.size();i++){
+      weight = exp(-pow( norme(X-_points[i])/sigma ,2 ));
+      sum = sum + ( produit_scalaire( _oNormals[i] , (X-_points[i]) ) * weight );
+      sum_weight = sum_weight + weight;
+  }
+
+  return (sum/sum_weight);
 }
 
 void PointsToSurface::computeNormalsFromImplicitFunc() {
-  // a remplir : _surfacen
+
+    _surfacen = _surfacep;
+    double nx,ny,nz,x,y,z;
+    for(int i=0;i<_surfacep.size();i++){
+        Point3D s0 = _surfacep[i].S0;
+        Point3D s1 = _surfacep[i].S1;
+        Point3D s2 = _surfacep[i].S2;
+        x = s0.x;
+        y = s0.y;
+        z = s0.z;
+
+        nx = computeImplicitFunc(x-0.01,y,z) - computeImplicitFunc(x+0.01,y,z);
+        ny = computeImplicitFunc(x,y-0.01,z) - computeImplicitFunc(x,y+0.01,z);
+        nz = computeImplicitFunc(x,y,z-0.01) - computeImplicitFunc(x,y,z+0.01);
+        Point3D ns0 = normalise(Point3D(nx,ny,nz));
+
+        x = s1.x;
+        y = s1.y;
+        z = s1.z;
+
+        nx = computeImplicitFunc(x-0.01,y,z) - computeImplicitFunc(x+0.01,y,z);
+        ny = computeImplicitFunc(x,y-0.01,z) - computeImplicitFunc(x,y+0.01,z);
+        nz = computeImplicitFunc(x,y,z-0.01) - computeImplicitFunc(x,y,z+0.01);
+        Point3D ns1 = normalise(Point3D(nx,ny,nz));
+
+        x = s2.x;
+        y = s2.y;
+        z = s2.z;
+
+        nx = computeImplicitFunc(x-0.01,y,z) - computeImplicitFunc(x+0.01,y,z);
+        ny = computeImplicitFunc(x,y-0.01,z) - computeImplicitFunc(x,y+0.01,z);
+        nz = computeImplicitFunc(x,y,z-0.01) - computeImplicitFunc(x,y,z+0.01);
+        Point3D ns2 = normalise(Point3D(nx,ny,nz));
+
+        Triangle3D triangle;
+        triangle.S0 = ns0;
+        triangle.S1 = ns1;
+        triangle.S2 = ns2;
+        _surfacen[i] = triangle;
+    }
 }
 
 void PointsToSurface::computeMesh() {
   // a remplir : _surfacep
+
+    // Create a 3DGrid G
+    //Covering box and step in the 3 dimensions
+
+    Point3D min = boundingMin();
+    Point3D max = boundingMax();
+    unsigned int n_x = 10;
+    unsigned int n_y = 10;
+    unsigned int n_z = 10;
+//    _boundingBox[0] = Point3D(min.x-1,min.y-1,min.z-1);
+//    _boundingBox[1] = Point3D(max.x+1,max.y+1,max.z+1);
+    Grille3D grille = Grille3D(min.x,min.y,min.z,max.x,max.y,max.z,n_x,n_y,n_z);
+
+
+  //Create an array v with the values of the implicit function
+    //same size as the grid
+    double v[n_x*n_y*n_z];
+    //for each position of the 3DGrid compute the value of the implicit function
+    int DIM_X = n_x;
+    int DIM_Y = n_y;
+
+    for(int i=0;i<n_x;i++){
+        for(int j=0;j<n_y;j++){
+            for(int k=0;k<n_z;k++){
+                v[i+DIM_X*(j+DIM_Y*k)] = computeImplicitFunc(grille.x(i),grille.y(j),grille.z(k));
+            }
+        }
+    }
+
+
+  //Compute the isovalue surface
+    SurfaceIsovaleurGrille* isovalue_surface = new SurfaceIsovaleurGrille();
+    cout <<"hello"<<endl;
+    isovalue_surface->surface_isovaleur(_surfacep,grille,v,0.0);
 }
 
 
