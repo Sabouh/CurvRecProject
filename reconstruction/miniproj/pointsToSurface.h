@@ -8,6 +8,10 @@
 #include"iso_value.h"
 #include <QString>
 
+#include <iostream>
+#include <list>
+#include <QVector>
+
 class PointsToSurface {
  public:
   PointsToSurface(const QString &filename);
@@ -21,9 +25,11 @@ class PointsToSurface {
   void   computeMesh();
   double computeImplicitFunc(double x,double y,double z);
   // **********************************************
-    //Fonctions ajoutée :
-  Point3D center_of_gravity(v_Point3D pts);
 
+    //Added functions :
+  Point3D center_of_gravity(v_Point3D pts);
+  void normalsRedirection(Graphe g,Noeud node,int s,QVector<bool> seen_nodes);
+  double compute_radius();
   // fonction qui appelle toutes les fonctions ci-dessus (rien à faire)
   void computeSurface();
 
@@ -57,6 +63,8 @@ class PointsToSurface {
   v_Triangle3D _surfacen;    // reconstructed surface normals
   // ********************************************
 
+  //************ added data **********
+  int nb_neighbors;
   
   // bounding box (rempli à la lecture du fichier de points)
   Point3D   _boundingBox[2]; 
